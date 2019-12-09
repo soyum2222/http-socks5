@@ -20,6 +20,7 @@ func main() {
 	socks_server := flag.String("s", "127.0.0.1:1080", "socks server addr")
 	local_port := flag.String("p", "10800", "local listen port")
 	help := flag.Bool("help", false, "")
+
 	flag.Parse()
 
 	if *help {
@@ -37,7 +38,8 @@ func main() {
 
 		conn, err := l.Accept()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			continue
 		}
 
 		go func() {
@@ -81,13 +83,6 @@ func main() {
 				http_request_buf = append(http_request_buf, body...)
 			}
 
-			socks5_conn, err := socks5.FirstShakeHands(*socks_server)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			defer socks5_conn.Close()
-
 			addr := strings.Split(request.Host, ":")
 			r, err := regexp.Compile(`(\.((1(5[0-5]|[0-4]\d))|[0-1]?\d{1,2})){3}`)
 			if err != nil {
@@ -115,12 +110,15 @@ func main() {
 			} else {
 				port = 80
 			}
+			var proxy_conn net.Conn
 
-			socks5_conn, err = socks5.SecondHandshake(socks5_conn, atyp, addr[0], port)
+			proxy_conn, err = socks5.GetSocks5Conn(*socks_server, atyp, addr[0], port)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
+
+			defer proxy_conn.Close()
 
 			// method is connect ues https
 			if request.Method == http.MethodConnect {
@@ -134,8 +132,7 @@ func main() {
 			} else {
 
 				// request
-				_, err = socks5_conn.Write(http_request_buf)
-				//fmt.Println(string(http_request_buf))
+				_, err = proxy_conn.Write(http_request_buf)
 
 			}
 
@@ -147,18 +144,19 @@ func main() {
 			go func() {
 
 				conn_stdout := io.MultiWriter(conn, os.Stdout)
-				_, err := io.Copy(conn_stdout, socks5_conn)
+				_, err := io.Copy(conn_stdout, proxy_conn)
+
 				if err != nil {
 					fmt.Println(err)
-					socks5_conn.Close()
+					proxy_conn.Close()
 					conn.Close()
 				}
 			}()
 
-			_, err = io.Copy(io.MultiWriter(socks5_conn, os.Stdout), conn)
+			_, err = io.Copy(io.MultiWriter(proxy_conn, os.Stdout), conn)
 			if err != nil {
 				fmt.Println(err)
-				socks5_conn.Close()
+				proxy_conn.Close()
 				conn.Close()
 			}
 

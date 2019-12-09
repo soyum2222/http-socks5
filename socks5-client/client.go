@@ -33,6 +33,27 @@ const (
 	ATYPIpv6 = 4
 )
 
+func GetSocks5Conn(socks5_addr string, atyp byte, addr string, port uint16) (net.Conn, error) {
+	conn, err := FirstShakeHands(socks5_addr)
+	if err != nil {
+		if conn != nil {
+			conn.Close()
+		}
+		return nil, err
+	}
+
+	conn, err = SecondHandshake(conn, atyp, addr, port)
+	if err != nil {
+		if conn != nil {
+			conn.Close()
+		}
+		return nil, err
+	}
+
+	return conn, err
+
+}
+
 func SecondHandshake(conn net.Conn, atyp byte, addr string, port uint16) (net.Conn, error) {
 
 	msg := make([]byte, 3)
