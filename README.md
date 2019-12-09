@@ -3,7 +3,9 @@ http proxy to socks5 proxy
 
 # Install
 git clone https://github.com/soyum2222/http-socks5.git
+
 cd http-socks5
+
 go build
 
 # Use
