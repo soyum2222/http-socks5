@@ -37,7 +37,7 @@ func main() {
 
 		conn, err := l.Accept()
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 
 		go func() {
