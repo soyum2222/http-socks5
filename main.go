@@ -54,7 +54,7 @@ func main() {
 					fmt.Println(err)
 					return
 				}
-				//fmt.Println(string(line))
+				fmt.Println(string(line))
 				// Each line of the http message is divided using 0x0a 0x0d
 				line = append(line, 0x0d, 0x0a)
 				http_request_buf = append(http_request_buf, line...)
@@ -117,7 +117,6 @@ func main() {
 				fmt.Println(err)
 				return
 			}
-
 			defer proxy_conn.Close()
 
 			// method is connect ues https
@@ -143,8 +142,8 @@ func main() {
 
 			go func() {
 
-				conn_stdout := io.MultiWriter(conn, os.Stdout)
-				_, err := io.Copy(conn_stdout, proxy_conn)
+				//conn_stdout := io.MultiWriter(conn, os.Stdout)
+				_, err := io.Copy(conn, proxy_conn)
 
 				if err != nil {
 					fmt.Println(err)
@@ -153,7 +152,7 @@ func main() {
 				}
 			}()
 
-			_, err = io.Copy(io.MultiWriter(proxy_conn, os.Stdout), conn)
+			_, err = io.Copy(proxy_conn, conn)
 			if err != nil {
 				fmt.Println(err)
 				proxy_conn.Close()
